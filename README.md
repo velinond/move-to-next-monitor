@@ -21,7 +21,8 @@ to un/tile window.
 * Configure shotcut  Keyboard->Application shorcuts->Add 
 
 
-![image](https://user-images.githubusercontent.com/72152874/112764417-b540e800-9008-11eb-92b3-eb4742de321a.png)
+![image](https://user-images.githubusercontent.com/72152874/112764885-cd196b80-900a-11eb-8564-f73d967b3454.png)
+
 
 ## Dependencies
 
