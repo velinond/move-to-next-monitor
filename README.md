@@ -15,14 +15,11 @@ to un/tile window.
 
 ## Usage
 
-```
 Download script to desired directory (~/.local/bin)
 Make sure directory is in $PATH
 Add permissions (chmod 775 move-to-next-monitor.sh)
 Configure shotcut  Keyboard->Application shorcuts->Add
 ![image](https://user-images.githubusercontent.com/72152874/112764417-b540e800-9008-11eb-92b3-eb4742de321a.png)
-
-```
 
 ## Dependencies
 
