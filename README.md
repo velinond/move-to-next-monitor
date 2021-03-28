@@ -26,7 +26,7 @@ to un/tile window.
 ## Dependencies
 
 ```
-# wmctrl
-# xdotool
-# xrandr
+wmctrl
+xdotool
+xrandr
 ```
