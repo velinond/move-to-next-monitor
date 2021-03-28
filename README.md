@@ -2,8 +2,8 @@
 
 Now the script does not only add screen width/height to window position 
 but computes relative position on one screen and moves window to relative
-position on other screen. Now the script works with monitors that are not 
-the same size.
+position on other screen. 
+This script has not yet been tested on other setups, if it does not work, it might be needed to change the way it looks for connected monitors
 
 ## KNOWN BUGS: 
 1) if the window is tiled, it will be moved however after it is untiled
