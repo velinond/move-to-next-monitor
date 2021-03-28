@@ -1,39 +1,33 @@
-# move-to-next-monitor
+# move-to-next-monitor (Revisited)
 
-Script to move windows from one monitor to the next in Xubuntu
+Now the script does not only add screen width/height to window position 
+but computes relative position on one screen and moves window to relative
+position on other screen. Now the script works with monitors that are not 
+the same size.
 
-Even though I don't use Xubuntu anymore, people are still interested
-in this script. Sweet! Glad it can help others.
-
-I mapped `ctrl+alt+n` to exectute this script.
+## KNOWN BUGS: 
+1) if the window is tiled, it will be moved however after it is untiled
+it will return back to previous screen. This could be fixed by untiling it 
+first moving and tiling it back the same way as this script deals with 
+maximalized windows. However I did not find command or window property 
+to un/tile window.
+2) integer division errors
 
 ## Usage
 
 ```
-wget https://raw.githubusercontent.com/jc00ke/move-to-next-monitor/master/move-to-next-monitor
-chmod +x move-to-next-monitor
-mv move-to-next-monitor /somewhere/in/your/$PATH
+Download script to desired directory (~/.local/bin)
+Make sure directory is in $PATH
+Add permissions (chmod 775 move-to-next-monitor.sh)
+Configure shotcut  Keyboard->Application shorcuts->Add
+![image](https://user-images.githubusercontent.com/72152874/112764417-b540e800-9008-11eb-92b3-eb4742de321a.png)
+
 ```
 
 ## Dependencies
 
 ```
-# Xubuntu 18.04
-sudo apt install xdotool wmctrl
-
-# Xubuntu 16.04
-sudo apt-get install xdotool
+# wmctrl
+# xdotool
+# xrandr
 ```
-
-## Code of Conduct
-
-[We have one](code_of_conduct.md), and you're expected to follow it.
-
-## Support
-
-Since I don't use Xubuntu and therefore don't have a way to test changes, I'm going to rely on others to QA and give me feedback.
-
-## Thanks
-
-* [icyrock](http://icyrock.com/blog/2012/05/xubuntu-moving-windows-between-monitors/) post for initial development
-* [@jordansissel](https://github.com/jordansissel) for his excellent [xdotool](https://github.com/jordansissel/xdotool)
