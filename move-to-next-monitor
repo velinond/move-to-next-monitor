@@ -11,11 +11,22 @@
 # checking "-geometry" of "xwininfo -id $window_id" are not sufficient, as
 # the first command does not respect panel/decoration offsets and the second
 # will sometimes give a "-0-0" geometry. This is why we resort to "xwininfo".
+#
+# Edited by whatifiamadog 28/03/2021
+# Now the script does not only add screen width/height to window position 
+# but computes relative position on one screen and moves window to relative
+# position on other screen. 
+#
+# KNOWN BUGS: 
+# 1) if the window is tiled, it will be moved however after it is untiled
+# it will return back to previous screen. This could be fixed by untiling it first 
+# moving and tiling it back the same way as this script deals with maximalized 
+# windows. However I did not find command or window property to un/tile window.
+# 2) integer division errors
+
 
 screen_width=$(xdpyinfo | awk '/dimensions:/ { print $2; exit }' | cut -d"x" -f1)
 screen_height=$(xdpyinfo | awk '/dimensions:/ { print $2; exit }' | cut -d"x" -f2)
-display_width=$(xdotool getdisplaygeometry | cut -d" " -f1)
-display_height=$(xdotool getdisplaygeometry | cut -d" " -f2)
 window_id=$(xdotool getactivewindow)
 
 # Remember if it was maximized.
@@ -29,47 +40,76 @@ wmctrl -ir "$window_id" -b remove,maximized_vert,maximized_horz
 x=$(xwininfo -id "$window_id" | awk '/Absolute upper-left X:/ { print $4 }')
 y=$(xwininfo -id "$window_id" | awk '/Absolute upper-left Y:/ { print $4 }')
 
+# Use xrandr to get information about dual monitor setup
+screens=$(xrandr -q | awk '/DP[0-9] connected / {print $3}')
+screen1=$(echo $screens | cut -d" " -f 1)
+screen2=$(echo $screens | cut -d" " -f 2)
+
+# Output should look like 1366x768+341+0 and needs to be parsed
+sc1x=$(echo $screen1 | awk -F'[x+]' '{print $1}')
+sc1y=$(echo $screen1 | awk -F'[x+]' '{print $2}')
+sc1xoff=$(echo $screen1 | awk -F'[x+]' '{print $3}')
+sc1yoff=$(echo $screen1 | awk -F'[x+]' '{print $4}')
+
+sc2x=$(echo $screen2 | awk -F'[x+]' '{print $1}')
+sc2y=$(echo $screen2 | awk -F'[x+]' '{print $2}')
+sc2xoff=$(echo $screen2 | awk -F'[x+]' '{print $3}')
+sc2yoff=$(echo $screen2 | awk -F'[x+]' '{print $4}')
+
+
 # Subtract any offsets caused by panels or window decorations
 x_offset=$(xwininfo -id "$window_id" | awk '/Relative upper-left X:/ { print $4 }')
 y_offset=$(xwininfo -id "$window_id" | awk '/Relative upper-left Y:/ { print $4 }')
 x=$(( x - x_offset))
 y=$(( y - y_offset))
 
-# Compute new X position
-new_x=$((x + display_width))
-# Compute new Y position
-new_y=$((y + display_height))
-
-# If we would move off the right-most monitor, we set it to the left one.
-# We also respect the window's width here: moving a window off more than half its width won't happen.
+# Get width and height of window
 width=$(xdotool getwindowgeometry "$window_id" | awk '/Geometry:/ { print $2 }'|cut -d"x" -f1)
-if [ "$(( new_x + width / 2))" -gt "$screen_width" ]; then
-    new_x=$((new_x - screen_width))
-fi
-
 height=$(xdotool getwindowgeometry "$window_id" | awk '/Geometry:/ { print $2 }'|cut -d"x" -f2)
-if [ "$((new_y + height / 2))" -gt "$screen_height" ]; then
-    new_y=$((new_y - screen_height))
+
+# Find out what monitor is the window currently on
+isonsc1=0
+isonsc2=0
+if [ "$x" -ge "$sc1xoff" ] &&  [ "$x" -lt "$((sc1xoff+sc1x))" ] && [ "$y" -ge "$sc1yoff" ] &&  [ "$y" -lt "$((sc1yoff+sc1y))" ]; then
+	isonsc1=1
+	isonsc2=0
+	echo "is screen 1"
+fi
+if [ "$x" -ge "$sc2xoff" ] &&  [ "$x" -lt "$((sc2xoff+sc2x))" ] && [ "$y" -ge "$sc2yoff" ] &&  [ "$y" -lt "$((sc2yoff+sc2y))" ]; then
+	isonsc2=1
+	isonsc1=0
+	echo "is screen 2"
 fi
 
-# Don't move off the left side.
-if [ "$new_x" -lt 0 ]; then
-    new_x=0
+# Move window to same relative position on other monitor and resize it appropriately,
+# note that bash only uses integers, so we need to do multiplication first
+# This might result in 1px error in position
+
+if [ "$isonsc1" -eq 1 ]; then
+	new_x=$(((x-sc1xoff)*sc2x/sc1x + sc2xoff))
+	new_y=$(((y-sc1yoff)*sc2y/sc1y + sc2yoff))
+	new_width=$((width*sc2x/sc1x))
+	new_height=$((height*sc2y/sc1y))
+fi
+if [ "$isonsc2" -eq 1 ]; then
+	new_x=$(((x-sc2xoff)*sc1x/sc2x + sc1xoff))
+	new_y=$(((y-sc2yoff)*sc1y/sc2y + sc1yoff))
+	new_width=$((width*sc1x/sc2x))
+	new_height=$((height*sc1y/sc2y))
 fi
 
-# Don't move off the bottom
-if [ "$new_y" -lt 0 ]; then
-    new_y=0
-fi
+# echo $new_x
+# echo $new_y
 
 # Move the window
 xdotool windowmove "$window_id" "$new_x" "$new_y"
+# Resize window
+xdotool windowsize "$window_id" "$new_width" "$new_height"
 
 # Maximize window again, if it was before
-if [ -n "${window_horz_maxed}" ] && [ -n "${window_vert_maxed}" ]; then
-    wmctrl -ir "$window_id" -b add,maximized_vert,maximized_horz
-elif [ -n  "${window_horz_maxed}" ]; then
+if [ -n  "${window_horz_maxed}" ]; then
     wmctrl -ir "$window_id" -b add,maximized_horz
-elif [ -n  "${window_vert_maxed}" ]; then
+fi
+if [ -n  "${window_vert_maxed}" ]; then
     wmctrl -ir "$window_id" -b add,maximized_vert
 fi
